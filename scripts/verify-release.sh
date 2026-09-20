@@ -47,12 +47,15 @@ expected="$(tr -d '[:space:]' < "$PIN_FILE")"
 "$APKSIGNER" verify --print-certs "$APK" > "$work/certs.txt" \
     || die "apksigner could not verify $APK"
 
-# exactly one signer, matching the pin
-mapfile -t digests < <(sed -n 's/^Signer #[0-9]* certificate SHA-256 digest: //p' "$work/certs.txt")
-[ "${#digests[@]}" -eq 1 ] || die "expected exactly 1 signer, found ${#digests[@]}"
-[ "${digests[0]}" = "$expected" ] || die "signer mismatch
+# exactly one signer, matching the pin.
+# No mapfile/readarray here: macOS ships bash 3.2 and lacks both.
+sed -n 's/^Signer #[0-9]* certificate SHA-256 digest: //p' "$work/certs.txt" > "$work/digests.txt"
+count="$(grep -c . "$work/digests.txt" || true)"
+[ "$count" -eq 1 ] || die "expected exactly 1 signer, found $count"
+actual="$(head -n1 "$work/digests.txt" | tr -d '[:space:]')"
+[ "$actual" = "$expected" ] || die "signer mismatch
     expected $expected
-    got      ${digests[0]}"
+    got      $actual"
 echo "✓ signer matches pin"
 
 # --- 3. not debuggable ----------------------------------------------------
