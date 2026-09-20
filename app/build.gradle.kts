@@ -33,7 +33,12 @@ android {
 
     buildTypes {
         debug {
-            signingConfig = signingConfigs.getByName("soloist")
+            // Deliberately NOT the soloist key, and a different applicationId.
+            // Sharing them would let a debuggable build replace the release app
+            // while still satisfying its certificate pin — and a debuggable
+            // Menu exposes its process and preferences to run-as.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
         }
         release {
             // 21 KB of platform-only code; R8 buys nothing and risks stripping

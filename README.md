@@ -112,24 +112,39 @@ JSON blob in `SharedPreferences`.
 No dependencies beyond the Android platform — no Kotlin, no Compose, no
 AndroidX.
 
-Both build types are signed with a private identity: keystore at
+**Release** builds sign with a private identity: keystore at
 `~/.android-keys/soloist-menu.jks`, alias `soloist-menu`, password read from
 1Password at build time and never written to a file. Menu is the only route to
 every app hidden from the LightOS toolbox, so an update signed by anyone else
-would take the whole shelf with it — the default debug key is public and
-forgeable, and so is light-sdk's checked-in `lightsdk-dev` key.
+would take the whole shelf with it.
+
+**Debug** builds deliberately do *not* use that key, and carry
+`applicationIdSuffix = ".debug"` so they install alongside rather than over the
+release app. Sharing the identity would let a debuggable build replace the
+release one while still satisfying its certificate pin — and a debuggable Menu
+exposes its process and preferences to `run-as`.
+
+To be precise about why the debug key is unsuitable: Android's default debug
+keystore is generated locally per machine, so it is not *published* — but it
+has a well-known password, is unmanaged, and is not a durable identity. That is
+different from light-sdk's `lightsdk-dev` key, which genuinely is public
+because it is committed to the repository. Both are unfit to sign something
+load-bearing, for different reasons.
 
 ```sh
-MENU_SIGNING_PASSWORD=$(op read "op://<vault>/Menu signing key/password") \
-JAVA_HOME=$(/usr/libexec/java_home) \
-  ./gradlew :app:assembleRelease
-scripts/verify-release.sh
-adb install -r app/build/outputs/apk/release/app-release.apk
+MENU_SIGNING_PASSWORD=$(op read "op://Private/Menu signing key/password") \
+  ./scripts/release.sh
 ```
 
-`scripts/verify-release.sh` is the gate: it refuses anything whose signer
-doesn't match `scripts/release-cert-sha256.txt`, anything debuggable, and
-anything with backups enabled.
+Use that single script rather than running the steps by hand. Build, verify and
+install as three separate shell commands lets the install proceed *after* a
+failed verify — a script's exit status cannot stop its caller's next command.
+`release.sh` chains them, refuses a dirty working tree so the artifact maps to
+a revision, and installs exactly the APK that passed.
+
+`scripts/verify-release.sh` is the gate: it requires an already-enrolled pin
+(it will not enrol one for you), demands exactly one signer matching it, and
+rejects anything debuggable or with backups enabled.
 
 `MENU_SIGNING_STORE` overrides the keystore path if you keep it elsewhere.
 

@@ -2,6 +2,7 @@ package ist.solo.menu;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
@@ -217,7 +218,15 @@ public class MainActivity extends Activity {
             return;
         }
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
+        try {
+            startActivity(intent);
+        } catch (ActivityNotFoundException | SecurityException e) {
+            // The target can disappear or become unlaunchable between resolving
+            // the intent and starting it — uninstalled, disabled, or guarded by
+            // a permission we do not hold. Report and re-render rather than die.
+            Toast.makeText(this, "Could not open " + entry.label, Toast.LENGTH_SHORT).show();
+            render();
+        }
     }
 
     // ---- editing -----------------------------------------------------------

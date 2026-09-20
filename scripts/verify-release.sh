@@ -1,50 +1,85 @@
 #!/usr/bin/env bash
-# Release gate for Menu, modelled on readwise-review's.
+# Release gate for Menu.
 #
 # Menu is the only route to every app hidden from the LightOS toolbox, so an
-# APK signed by the wrong key would quietly take the whole shelf with it.
-# Three checks, all fatal:
-#   1. the signer is the expected certificate
-#   2. the build is not debuggable
-#   3. backups are off
+# APK signed by the wrong key — or a debuggable one — would quietly take the
+# whole shelf with it. Four checks, all fatal:
+#   1. a pin already exists (enrolment is a separate, explicit act)
+#   2. the signer matches it
+#   3. the build is not debuggable
+#   4. backups are off
+#
+# Parsing rules, learned from a security review that broke the previous
+# version of this script:
+#   - never use `cmd | grep -q` for a security decision. grep exits early,
+#     the producer takes SIGPIPE, and under `pipefail` the pipeline reports
+#     failure — so `a && fail || ok` reports OK for a *failing* check.
+#   - never regex across a whole dump. Match the exact attribute, or an
+#     unrelated string elsewhere can satisfy the test.
 set -euo pipefail
 
 APK="${1:-app/build/outputs/apk/release/app-release.apk}"
-PIN_FILE="$(dirname "$0")/release-cert-sha256.txt"
+PIN_FILE="$(cd "$(dirname "$0")" && pwd)/release-cert-sha256.txt"
 
 SDK="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
 BT="$(ls -1 "$SDK/build-tools" | sort -V | tail -1)"
 APKSIGNER="$SDK/build-tools/$BT/apksigner"
 AAPT2="$SDK/build-tools/$BT/aapt2"
 
-[ -f "$APK" ] || { echo "✗ no APK at $APK"; exit 1; }
+die() { echo "✗ $*" >&2; exit 1; }
 
-fail() { echo "✗ $1"; exit 1; }
+[ -f "$APK" ]       || die "no APK at $APK"
+[ -x "$APKSIGNER" ] || die "apksigner not found at $APKSIGNER"
+[ -x "$AAPT2" ]     || die "aapt2 not found at $AAPT2"
 
-# 1. signer identity
-actual="$("$APKSIGNER" verify --print-certs "$APK" \
-    | grep -m1 'SHA-256 digest' | awk '{print $NF}')"
-if [ -f "$PIN_FILE" ]; then
-    expected="$(tr -d '[:space:]' < "$PIN_FILE")"
-    [ "$actual" = "$expected" ] || fail "signer mismatch
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+
+# --- 1 & 2. signer must match an already-enrolled pin ---------------------
+[ -s "$PIN_FILE" ] || die "no certificate pin at $PIN_FILE.
+    Enrolment is deliberately separate: record the expected fingerprint
+    yourself before this gate will pass. A verifier that trusts whatever
+    it is handed verifies nothing."
+
+expected="$(tr -d '[:space:]' < "$PIN_FILE")"
+[ ${#expected} -eq 64 ] || die "pin is not a 64-char sha-256: $PIN_FILE"
+
+"$APKSIGNER" verify --print-certs "$APK" > "$work/certs.txt" \
+    || die "apksigner could not verify $APK"
+
+# exactly one signer, matching the pin
+mapfile -t digests < <(sed -n 's/^Signer #[0-9]* certificate SHA-256 digest: //p' "$work/certs.txt")
+[ "${#digests[@]}" -eq 1 ] || die "expected exactly 1 signer, found ${#digests[@]}"
+[ "${digests[0]}" = "$expected" ] || die "signer mismatch
     expected $expected
-    got      $actual"
-    echo "✓ signer matches pin"
-else
-    echo "! no pin recorded yet — writing $PIN_FILE"
-    echo "$actual" > "$PIN_FILE"
-    echo "✓ pinned $actual"
+    got      ${digests[0]}"
+echo "✓ signer matches pin"
+
+# --- 3. not debuggable ----------------------------------------------------
+"$AAPT2" dump badging "$APK" > "$work/badging.txt" || die "aapt2 badging failed"
+if grep -q '^application-debuggable' "$work/badging.txt"; then
+    die "APK is debuggable"
 fi
+echo "✓ not debuggable"
 
-# 2. not debuggable
-badging="$("$AAPT2" dump badging "$APK")"
-echo "$badging" | grep -q "application-debuggable" \
-    && fail "APK is debuggable" || echo "✓ not debuggable"
+# --- 4. allowBackup explicitly false on <application> ---------------------
+"$AAPT2" dump xmltree --file AndroidManifest.xml "$APK" > "$work/manifest.txt" \
+    || die "aapt2 xmltree failed"
 
-# 3. backups off
-manifest="$("$AAPT2" dump xmltree --file AndroidManifest.xml "$APK")"
-echo "$manifest" | grep -q 'allowBackup.*=false' \
-    || fail "allowBackup is not false"
+# Take the attribute line inside the application element, not any string
+# anywhere in the dump that happens to contain "allowBackup".
+backup="$(awk '
+    /^ *E: application/ { inapp=1; next }
+    inapp && /^ *E: / && !/^ *E: (activity|receiver|service|provider|meta-data)/ { inapp=0 }
+    inapp && /android:allowBackup/ {
+        if (match($0, /=(true|false)/)) { print substr($0, RSTART+1, RLENGTH-1); exit }
+        if (match($0, /\(type 0x12\)0x0/))  { print "false"; exit }
+        if (match($0, /\(type 0x12\)0x[fF]/)) { print "true";  exit }
+    }
+' "$work/manifest.txt")"
+
+[ -n "$backup" ]      || die "could not determine allowBackup from the manifest"
+[ "$backup" = "false" ] || die "allowBackup is $backup, expected false"
 echo "✓ allowBackup=false"
 
 echo "$APK looks releasable."
