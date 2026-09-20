@@ -49,6 +49,15 @@ final class Style {
     static final int DOT_PITCH_DP = 27;
     static final int DOT_MARGIN_END_DP = 16;
 
+    /**
+     * Page-turn haptic, matched to LightOS. Read off the real toolbox via
+     * `dumpsys vibrator_manager`: com.lightos plays
+     * Composed{segments=[Step{amplitude=1.0, duration=40}]} with
+     * originalEffect amplitude=-1.0 and Usage=TOUCH — i.e. a plain
+     * createOneShot(40, DEFAULT_AMPLITUDE), not a prebaked CLICK.
+     */
+    static final long HAPTIC_MS = 40L;
+
     /** Keeps long labels clear of the dot rail while staying screen-centred. */
     static final int ROW_PAD_HORIZONTAL_DP = 32;
 }

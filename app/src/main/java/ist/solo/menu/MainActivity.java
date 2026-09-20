@@ -9,6 +9,10 @@ import android.content.pm.ResolveInfo;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.os.VibrationAttributes;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.os.VibratorManager;
 import android.text.InputType;
 import android.util.TypedValue;
 import android.view.GestureDetector;
@@ -44,11 +48,15 @@ public class MainActivity extends Activity {
     private GestureDetector gestures;
 
     private int page = 0;
+    private Vibrator vibrator;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         store = new Store(this);
+
+        VibratorManager vm = (VibratorManager) getSystemService(VIBRATOR_MANAGER_SERVICE);
+        vibrator = vm != null ? vm.getDefaultVibrator() : null;
 
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(Style.BACKGROUND);
@@ -186,9 +194,19 @@ public class MainActivity extends Activity {
         List<Store.Entry> rows = visibleRows();
         int pageCount = Math.max(1, (int) Math.ceil(rows.size() / (double) Style.ROWS_PER_PAGE));
         int next = page + delta;
+        // No feedback at the ends — the page didn't turn, so nothing happened.
         if (next < 0 || next >= pageCount) return;
         page = next;
+        haptic();
         render();
+    }
+
+    /** The same 40ms one-shot the LightOS toolbox plays on a page turn. */
+    private void haptic() {
+        if (vibrator == null || !vibrator.hasVibrator()) return;
+        vibrator.vibrate(
+                VibrationEffect.createOneShot(Style.HAPTIC_MS, VibrationEffect.DEFAULT_AMPLITUDE),
+                VibrationAttributes.createForUsage(VibrationAttributes.USAGE_TOUCH));
     }
 
     private void launch(Store.Entry entry) {

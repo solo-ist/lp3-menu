@@ -57,6 +57,27 @@ measured against a screenshot of the real toolbox on `582-release-lp3`
 | Alignment | centred | every row shares centre x = 540 |
 | Rows per page | 6 | counted |
 | Dot rail | right edge, 27dp pitch | centre x ≈ 1016 |
+| Page haptic | 40ms one-shot, TOUCH | read off `dumpsys vibrator_manager` |
+
+The haptic was matched the same way — by reading what the real toolbox plays
+rather than picking a plausible constant. `adb shell dumpsys vibrator_manager`
+keeps a history with the calling package, and `com.lightos` plays:
+
+```
+effect:         Composed{segments=[Step{amplitude=1.0, duration=40}]}
+originalEffect: Composed{segments=[Step{amplitude=-1.0, duration=40}]}
+Usage=TOUCH
+```
+
+`amplitude=-1.0` in originalEffect is `DEFAULT_AMPLITUDE`, so that is
+`createOneShot(40, DEFAULT_AMPLITUDE)` — **not** a prebaked `EFFECT_CLICK`,
+which is what guessing would have produced. Note that
+`View.performHapticFeedback` can't express it (its constants are prebaked),
+so Menu calls `Vibrator` directly and declares `VIBRATE`.
+
+Useful while reading that history: `performHapticFeedback` is dispatched by
+the system, so it is attributed to `opPkg=android` rather than to the app —
+the LP3's wheel and side buttons show up that way, as `Usage=HARDWARE`.
 
 Size and weight were matched by decoding both screenshots and measuring,
 not by eye. Scan the ascender-to-baseline band for glyph height and the

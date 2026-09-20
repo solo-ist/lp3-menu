@@ -8,6 +8,13 @@
     -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
+    <!--
+      Page-turn haptic. Calling Vibrator directly needs this; performHapticFeedback
+      would not, but its prebaked effects do not match what LightOS plays.
+      Protection level is normal, so it is granted at install.
+    -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <application
         android:label="Menu"
         android:icon="@mipmap/ic_launcher"
