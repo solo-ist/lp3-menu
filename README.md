@@ -74,14 +74,26 @@ JSON blob in `SharedPreferences`.
 No dependencies beyond the Android platform — no Kotlin, no Compose, no
 AndroidX.
 
+Both build types are signed with a private identity: keystore at
+`~/.android-keys/soloist-menu.jks`, alias `soloist-menu`, password read from
+1Password at build time and never written to a file. Menu is the only route to
+every app hidden from the LightOS toolbox, so an update signed by anyone else
+would take the whole shelf with it — the default debug key is public and
+forgeable, and so is light-sdk's checked-in `lightsdk-dev` key.
+
 ```sh
-JAVA_HOME=$(/usr/libexec/java_home) ./gradlew :app:assembleDebug
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+MENU_SIGNING_PASSWORD=$(op read "op://<vault>/Menu signing key/password") \
+JAVA_HOME=$(/usr/libexec/java_home) \
+  ./gradlew :app:assembleRelease
+scripts/verify-release.sh
+adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 
-The debug build is signed with the default debug key. Give it a real signing
-identity before treating an update as authenticated — see the `lightsdk-dev`
-cautionary tale in [SoloPhone's SIDELOADS.md](https://github.com/solo-ist/solophone/blob/main/SIDELOADS.md).
+`scripts/verify-release.sh` is the gate: it refuses anything whose signer
+doesn't match `scripts/release-cert-sha256.txt`, anything debuggable, and
+anything with backups enabled.
+
+`MENU_SIGNING_STORE` overrides the keystore path if you keep it elsewhere.
 
 ## Status
 

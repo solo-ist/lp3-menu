@@ -38,15 +38,26 @@ final class Store {
      * so a missing app costs nothing — it just doesn't appear.
      */
     private static final String[][] SEED = {
-            {"com.anthropic.claude", "Claude"},
-            {"com.Slack", "Slack"},
-            {"com.onepassword.android", "1Password"},
-            {"io.homeassistant.companion.android.minimal", "Home Assistant"},
-            {"xyz.blueskyweb.app", "Bluesky"},
-            {"dev.imranr.obtainium", "Obtainium"},
+            {"im.mollylight.app",                          "Molly"},
+            {"com.anthropic.claude",                       "Claude"},
+            {"com.Slack",                                  "Slack"},
+            {"com.spotify.music",                          "Spotify"},
+            {"io.homeassistant.companion.android.minimal", "Home"},
+            {"com.onepassword.android",                    "1Password"},
+            {"com.todoist",                                "Todoist"},
+            {"xyz.blueskyweb.app",                         "Bluesky"},
+            {"com.sonos.acr2",                             "Sonos"},
             // gi-os BrightRemote — an Apple TV *remote*, not Apple's
             // streaming app (which is com.apple.atve.* and Android-TV shaped).
-            {"com.gios.lightremote", "Apple TV"},
+            {"com.gios.lightremote",                       "Apple TV"},
+            {"com.gios.lightcamera",                       "Roll"},
+            {"com.gios.lightcontrol",                      "Controls"},
+            {"dev.imranr.obtainium",                       "Obtainium"},
+            {"com.gios.brightmarket",                      "Market"},
+            {"com.gios.brightmailbox",                     "Mailbox"},
+            {"com.aurora.store",                           "Aurora"},
+            {"com.zacksimpson.composer",                   "Composer"},
+            {"com.gios.lightqr",                           "QR"},
     };
 
     private final SharedPreferences prefs;
