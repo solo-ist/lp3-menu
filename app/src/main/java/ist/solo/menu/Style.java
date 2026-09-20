@@ -25,15 +25,23 @@ final class Style {
     /** The add-row and other secondary text. */
     static final int MUTED = Color.parseColor("#6E6E6E");
 
-    /** Resolves to AkkuratLLTT-Light on LightOS. */
-    static final String FONT_FAMILY = "sans-serif-light";
+    /**
+     * Resolves to AkkuratLLTT-Regular (weight 400) on LightOS — the system
+     * sans-serif family is Akkurat LL. "sans-serif-light" (weight 300) was
+     * visibly thinner than the toolbox: 6px stems against its 10px.
+     */
+    static final String FONT_FAMILY = "sans-serif";
 
     /**
-     * Matched by width against the reference: real "Calculator" occupies
-     * 513px for ten glyphs (~51px/char). 42sp measured ~64px/char and ran
-     * into the dot rail, so it came down.
+     * Matched by measurement against a screenshot of the real toolbox,
+     * excluding the page-dot rail from the scan. Reference "Calculator"
+     * renders an 80px ascender-to-baseline band with 10px stems. At
+     * Regular weight: 34sp gave 76px, 38sp gave 85px, so 36sp lands on 80.
+     *
+     * Compare glyph height, not per-character width — width varies too much
+     * between words to be a reliable axis.
      */
-    static final float ROW_TEXT_SP = 34f;
+    static final float ROW_TEXT_SP = 36f;
     static final int ROW_PITCH_DP = 63;
     static final int ROWS_PER_PAGE = 6;
 

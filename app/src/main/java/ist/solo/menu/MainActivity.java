@@ -93,6 +93,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        // Always come back to the first page. Returning to Menu should feel
+        // like opening it fresh, not resuming wherever you last paged to.
+        page = 0;
         // Apps come and go behind our back; returning from a launch should
         // show current truth rather than a stale list.
         render();

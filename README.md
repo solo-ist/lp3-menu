@@ -52,10 +52,27 @@ measured against a screenshot of the real toolbox on `582-release-lp3`
 | | Value | How it was derived |
 |---|---|---|
 | Row pitch | 63dp | 190px between row tops |
-| Text size | 34sp | width-matched: real "Calculator" is 513px for ten glyphs |
+| Text size | 36sp | glyph height matched — see below |
+| Weight | Regular (400) | stem width matched — see below |
 | Alignment | centred | every row shares centre x = 540 |
 | Rows per page | 6 | counted |
 | Dot rail | right edge, 27dp pitch | centre x ≈ 1016 |
+
+Size and weight were matched by decoding both screenshots and measuring,
+not by eye. Scan the ascender-to-baseline band for glyph height and the
+x-height zone for stroke widths, **excluding the page-dot rail** (x < 950) —
+leaving it in corrupts the band and hides the very difference you're chasing.
+
+| | glyph height | median stem |
+|---|---|---|
+| toolbox "Calculator" | 80px | 10px |
+| Light 34sp | 76px | 6px |
+| Regular 38sp | 85px | 10px |
+| **Regular 36sp** | **80px** | **10px** |
+
+Compare glyph height rather than per-character width: width varies too much
+between words to be a reliable axis, and matching on it is what let a
+visibly-too-light 34sp pass as correct.
 
 **Typeface:** LightOS maps the system `sans-serif` family to **Akkurat LL** in
 `/system/etc/fonts.xml`, so asking for `sans-serif-light` yields
