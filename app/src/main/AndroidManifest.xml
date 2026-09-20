@@ -10,6 +10,8 @@
 
     <application
         android:label="Menu"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
         android:allowBackup="false"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.NoActionBar">
@@ -23,5 +25,21 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!--
+          Marks Menu as a LightOS "tool" so it survives the toolbox filter
+          when external tools are switched off. Matched against the
+          declaration in a real light-sdk tool. See SdkMarkerReceiver.
+        -->
+        <receiver
+            android:name=".SdkMarkerReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.thelightphone.sdk.ACTION_SDK_MARKER" />
+            </intent-filter>
+            <meta-data
+                android:name="com.thelightphone.sdk.SDK_VERSION"
+                android:value="0.1.1" />
+        </receiver>
     </application>
 </manifest>
